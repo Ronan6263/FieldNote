@@ -1,0 +1,112 @@
+/* =====================================================================
+   FieldNote — app styles (on top of the shared design system in base.css)
+   ===================================================================== */
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; }
+body.list-mode .nav-back, body.list-mode #btnDocMore, body.list-mode .section-nav, body.list-mode #dock { display: none; }
+body:not(.list-mode) { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+body.list-mode { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+.section-nav:empty { display: none; }
+
+/* list rows for saved forms */
+.doc-group { margin-bottom: 6px; }
+.doc-row {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 8px 12px 14px; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--text);
+  font: inherit; text-align: left; cursor: pointer; position: relative; transition: background 160ms var(--ease);
+}
+.list-group > .doc-row:first-child { border-top: 0; }
+.doc-row:active { background: var(--hover); }
+@media (hover: hover) { .doc-row:hover { background: var(--hover); } }
+.doc-ring { position: relative; width: 44px; height: 44px; }
+.doc-ring svg { width: 44px; height: 44px; transform: rotate(-90deg); }
+.doc-ring .rt { fill: none; stroke: var(--line-2); stroke-width: 4; }
+.doc-ring .rf { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 600ms var(--ease); }
+.doc-ring.done .rf { stroke: var(--good); }
+.doc-ring i { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; font-family: var(--display); font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.doc-ring.tpl i { color: var(--accent-text); }
+.doc-name { font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: -0.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-meta { font-size: 12.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-dots { width: 40px; height: 40px; border: 0; border-radius: 12px; background: transparent; color: var(--faint); display: grid; place-items: center; cursor: pointer; }
+.doc-dots:active { background: var(--hover); }
+.tpl-tag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; background: var(--accent-dim); color: var(--accent-text); vertical-align: 1px; }
+
+/* editor hero */
+.fn-hero { padding: 6px 2px 14px; animation: rise 520ms var(--ease) both; }
+.fn-hero .title-input { background: transparent; border-color: transparent; padding-left: 2px; padding-right: 2px; font-size: 24px; font-weight: 580; letter-spacing: -0.03em; min-height: 44px; }
+.fn-hero .title-input:focus { background: var(--input-focus); padding-left: 14px; padding-right: 14px; }
+.fn-hero-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 2px 12px; font-size: 13px; color: var(--muted); }
+.fn-bar { position: relative; height: 8px; border-radius: 99px; background: var(--input); border: 1px solid var(--line); overflow: hidden; }
+.fn-bar > i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); transition: width 520ms var(--ease); }
+.fn-bar.done > i { background: var(--good); }
+.fn-bar-row { display: flex; align-items: center; gap: 12px; }
+.fn-bar-row .fn-bar { flex: 1; }
+.fn-bar-row b { font-family: var(--display); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.fn-note { margin: 10px 0 0; padding: 12px 14px; border-radius: var(--r-md); background: var(--warn-dim); color: var(--warn-text); font-size: 13.5px; line-height: 1.5; }
+.fn-note.info { background: var(--accent-dim); color: var(--accent-text); }
+
+/* tinted cards (one hue per block, mixed into each theme's own line colour) */
+#docBody .card { --blk: var(--accent); border-color: color-mix(in srgb, var(--blk) 42%, var(--line)); animation: rise 520ms var(--ease) both; }
+#docBody .card > summary .sec-ico { background: color-mix(in srgb, var(--blk) 16%, transparent); color: color-mix(in srgb, var(--blk) 72%, var(--text)); }
+#docBody .card:nth-child(6n+1) { --blk: #6c9bff; } #docBody .card:nth-child(6n+2) { --blk: #2fc19a; } #docBody .card:nth-child(6n+3) { --blk: #4db3e6; }
+#docBody .card:nth-child(6n+4) { --blk: #e0a43a; } #docBody .card:nth-child(6n+5) { --blk: #a68cff; } #docBody .card:nth-child(6n) { --blk: #e56f8c; }
+.card-done .pill { background: var(--good-dim); color: var(--good-text); border-color: transparent; }
+
+/* generated fields */
+.fn-sub { margin: 20px 2px 2px; font-family: var(--display); font-size: 13px; font-weight: 650; letter-spacing: 0.01em; color: var(--muted); }
+.fn-sub:first-child { margin-top: 6px; }
+.fn-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 10px; }
+.fn-row > * { min-width: 0; }
+.fn-field { position: relative; }
+.fn-field > label { display: flex; align-items: baseline; gap: 6px; }
+.fn-field .req { color: var(--danger); font-weight: 800; }
+.fn-field.flash input, .fn-field.flash textarea, .fn-field.flash select, .fn-field.flash .fn-card { animation: ding 1.2s var(--ease) 1; }
+.fn-field textarea { min-height: 96px; }
+.fn-field.miss > label { color: var(--warn-text); }
+
+.fn-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fn-opt {
+  min-height: 42px; padding: 0 16px; border-radius: 13px; border: 1px solid var(--line-2); background: var(--input); color: var(--muted);
+  font-weight: 650; font-size: 14.5px; cursor: pointer; touch-action: manipulation; display: inline-flex; align-items: center; gap: 6px;
+  transition: transform 180ms var(--spring), background 200ms var(--ease), border-color 200ms var(--ease), color 200ms var(--ease);
+}
+.fn-opt:active { transform: scale(0.96); }
+.fn-opt.on { background: var(--accent-dim); border-color: color-mix(in srgb, var(--accent) 60%, transparent); color: var(--accent-text); }
+.fn-opt .ico { width: 15px; height: 15px; }
+
+.fn-checks { margin-top: 10px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); padding: 0 14px; }
+.fn-check { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); font-size: 14.5px; line-height: 1.4; }
+.fn-check:first-child { border-top: 0; }
+.fn-check > span { min-width: 0; overflow-wrap: anywhere; }
+.fn-check.flash { animation: ding 1.2s var(--ease) 1; }
+
+.fn-card { border-radius: 16px; padding: 12px; background: var(--surface); border: 1px solid var(--line); margin-top: 6px; transition: border-color 300ms var(--ease); }
+.fn-card.has { border-color: color-mix(in srgb, var(--good) 35%, var(--line)); }
+.fn-photo { position: relative; display: grid; place-items: center; width: 100%; min-height: 150px; padding: 8px; background: var(--input); border: 1.5px dashed var(--line-2); border-radius: 14px; overflow: hidden; color: var(--muted); font-weight: 600; font-size: 14px; gap: 6px; text-align: center; }
+.fn-photo img { display: block; max-width: 100%; max-height: 260px; border-radius: 8px; object-fit: contain; animation: fadeIn 300ms var(--ease) both; }
+.fn-photo .ico { width: 26px; height: 26px; color: var(--faint); }
+.fn-card.has .fn-photo { border-style: solid; }
+.fn-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.fn-btns .btn { min-height: 44px; font-size: 14px; padding: 0 10px; }
+.fn-clear { border: 0; background: transparent; color: var(--danger); font-weight: 700; font-size: 14px; padding: 8px 6px; border-radius: 8px; cursor: pointer; }
+
+/* edit-layout mode */
+body.editing .fn-field, body.editing .fn-check { outline: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 4px; border-radius: 10px; }
+.fn-edit { display: none; position: absolute; right: 0; top: -2px; z-index: 2; height: 30px; padding: 0 10px; gap: 5px; align-items: center; border: 0; border-radius: 9px; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; cursor: pointer; }
+.fn-check .fn-edit { position: static; height: 28px; }
+body.editing .fn-edit { display: inline-flex; }
+.fn-field.off, .fn-check.off { opacity: 0.45; }
+.edit-bar { position: sticky; top: calc(var(--hdr-h) + 6px); z-index: 7; display: none; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; padding: 10px 12px 10px 14px; border-radius: 14px; background: var(--sheet); border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: var(--shadow); font-size: 13.5px; font-weight: 600; }
+body.editing .edit-bar { display: flex; }
+
+.fn-empty { text-align: center; padding: 30px 18px 10px; color: var(--muted); animation: fadeUp 500ms var(--ease) both; }
+.fn-empty svg { width: 120px; height: auto; margin: 0 auto 14px; display: block; color: var(--accent); }
+.fn-empty h3 { margin: 0 0 6px; font-family: var(--display); font-size: 19px; color: var(--text); letter-spacing: -0.015em; }
+.fn-empty p { margin: 0 auto; max-width: 420px; font-size: 14px; line-height: 1.55; }
+.drop { margin-top: 14px; border: 1.5px dashed var(--line-2); border-radius: 20px; padding: 26px 16px; text-align: center; color: var(--muted); transition: border-color 200ms var(--ease), background 200ms var(--ease); }
+.drop.over { border-color: var(--accent); background: var(--accent-dim); color: var(--accent-text); }
+.job-menu .sep { height: 1px; background: var(--line); margin: 4px 6px; }
+#fieldSheet select, #fieldSheet input { margin-top: 0; }
+.busy { position: fixed; inset: 0; z-index: 120; display: none; place-items: center; background: var(--overlay); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.busy.show { display: grid; }
+.busy > div { background: var(--sheet); border: 1px solid var(--line-2); border-radius: 20px; padding: 22px 28px; text-align: center; color: var(--muted); font-weight: 600; box-shadow: var(--shadow-lg); }
+.busy > div::before { content: ""; display: block; width: 26px; height: 26px; margin: 0 auto 12px; border-radius: 50%; border: 3px solid var(--line-2); border-top-color: var(--accent); animation: spin 900ms linear infinite; }

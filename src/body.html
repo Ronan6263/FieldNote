@@ -1,0 +1,157 @@
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+<!--ICONS-->
+    </defs>
+  </svg>
+
+  <header class="app-header" id="appHeader">
+    <div class="bar">
+      <button type="button" class="nav-back" id="btnBack" aria-label="Back to forms"><svg class="ico"><use href="#i-chev-l"/></svg>Forms</button>
+      <span class="brand-mark"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fe3c4"/><stop offset="1" stop-color="#2aa88d"/></linearGradient></defs><rect width="40" height="40" rx="11" fill="url(#logoGrad)"/><path d="M12 10.5h11l5 5V29a1.5 1.5 0 0 1-1.5 1.5h-14.5A1.5 1.5 0 0 1 10.5 29V12A1.5 1.5 0 0 1 12 10.5z" fill="#fff" fill-opacity=".95"/><path d="M14.5 19h11M14.5 23h11M14.5 27h6" stroke="#1d7d68" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <div class="bar-title">
+        <h1 id="barTitle">FieldNote</h1>
+        <div class="sub" id="barSub">Turn any PDF into a form</div>
+      </div>
+      <button type="button" class="icon-btn" id="btnDocMore" title="Form options" aria-label="Form options"><svg class="ico"><use href="#i-more"/></svg></button>
+      <button type="button" class="icon-btn" id="btnSettings" title="Settings" aria-label="Settings"><svg class="ico"><use href="#i-gear"/></svg></button>
+    </div>
+    <nav class="section-nav" id="sectionNav" aria-label="Form sections"></nav>
+  </header>
+
+  <!-- ============ forms list ============ -->
+  <section id="listScreen" class="wrap">
+    <div class="home-hero">
+      <div>
+        <h2>Forms</h2>
+        <div class="count" id="homeCount">Add a PDF to get started</div>
+      </div>
+      <label class="btn primary" for="pdfPick"><svg class="ico sm"><use href="#i-plus"/></svg>New from PDF</label>
+      <input type="file" id="pdfPick" class="file-hide" accept="application/pdf,.pdf" />
+    </div>
+    <div class="home-tools hidden" id="homeTools">
+      <div class="search-wrap"><svg class="ico sm"><use href="#i-search"/></svg><input id="docSearch" type="search" placeholder="Search forms" aria-label="Search forms" autocomplete="off" enterkeyhint="search" /></div>
+    </div>
+    <div id="homeList"></div>
+    <p class="home-foot">Everything stays on this device. Your PDFs and answers are never uploaded.</p>
+  </section>
+
+  <!-- ============ form editor ============ -->
+  <main class="wrap hidden" id="docScreen">
+    <section class="fn-hero" id="docHero" aria-label="Form summary"></section>
+    <div id="docBody"></div>
+  </main>
+
+  <div class="dock hidden" id="dock">
+    <div class="dock-inner">
+      <div class="save-state" id="saveState"><span class="save-dot"></span><span id="saveText">Saved</span></div>
+      <button type="button" class="btn primary" id="btnExport"><svg class="ico sm"><use href="#i-file"/></svg>Preview &amp; export</button>
+    </div>
+  </div>
+
+  <!-- ============ form options ============ -->
+  <div class="sheet-back" id="menuBack"></div>
+  <section class="sheet" id="menuSheet" aria-label="Form options">
+    <div class="handle"></div>
+    <div class="sheet-top"><h2 class="grow sheet-title">Form options</h2><button type="button" class="sheet-done" id="btnCloseMenu">Done</button></div>
+    <h3 class="group-label">This form</h3>
+    <div class="list-group">
+      <button type="button" class="list-row" id="btnEditLayout"><span class="lr-ico"><svg class="ico"><use href="#i-layout"/></svg></span><span><b id="editLayoutTitle">Edit layout</b><small>Rename labels, change field types, hide fields</small></span><svg class="ico"><use href="#i-chev-r"/></svg></button>
+      <div class="setting-row">
+        <div><b>Flatten on export</b><span class="count">Bake answers into the PDF so they can't be edited afterwards.</span></div>
+        <button type="button" class="check-toggle" id="flattenToggle" role="switch" aria-checked="false" aria-label="Flatten on export">NO</button>
+      </div>
+      <button type="button" class="list-row" id="btnSaveTemplate"><span class="lr-ico"><svg class="ico"><use href="#i-bookmark"/></svg></span><span><b>Save as template</b><small>Keep this layout to fill again later</small></span><svg class="ico"><use href="#i-chev-r"/></svg></button>
+      <button type="button" class="list-row" id="btnDupe"><span class="lr-ico"><svg class="ico"><use href="#i-copy"/></svg></span><span><b>Duplicate</b><small>Copy this form with its answers</small></span><svg class="ico"><use href="#i-chev-r"/></svg></button>
+      <button type="button" class="list-row" id="btnClear"><span class="lr-ico"><svg class="ico"><use href="#i-repeat"/></svg></span><span><b>Clear answers</b><small>Start over on the same layout</small></span><svg class="ico"><use href="#i-chev-r"/></svg></button>
+      <button type="button" class="list-row danger" id="btnDelete"><span class="lr-ico"><svg class="ico"><use href="#i-trash"/></svg></span><span><b>Delete form</b><small>You can undo right after</small></span><svg class="ico"><use href="#i-chev-r"/></svg></button>
+    </div>
+  </section>
+
+  <!-- ============ settings ============ -->
+  <div class="sheet-back" id="settingsBack"></div>
+  <section class="sheet" id="settingsSheet" aria-label="Settings">
+    <div class="handle"></div>
+    <div class="sheet-top"><h2 class="grow sheet-title">Settings</h2><button type="button" class="sheet-done" id="btnCloseSettings">Done</button></div>
+    <h2 class="sec">Theme</h2>
+    <div class="theme-grid" id="themeGrid" role="radiogroup" aria-label="Theme"></div>
+    <h2 class="sec">Display</h2>
+    <div class="list-group">
+      <div class="setting-row">
+        <div><b>Reduce motion</b><span class="count">Turns off sliding and fading animations.</span></div>
+        <button type="button" class="check-toggle" id="motionToggle" role="switch" aria-checked="false" aria-label="Reduce motion">OFF</button>
+      </div>
+      <div class="setting-row">
+        <div><b>Date format</b><span class="count">How dates are written into the PDF when a form doesn't say.</span></div>
+        <select id="dateFmt" aria-label="Date format" style="width:auto;min-width:130px;min-height:42px">
+          <option value="MM/dd/yyyy">MM/DD/YYYY</option>
+          <option value="dd/MM/yyyy">DD/MM/YYYY</option>
+          <option value="yyyy-MM-dd">YYYY-MM-DD</option>
+          <option value="MMM d, yyyy">Mon D, YYYY</option>
+        </select>
+      </div>
+    </div>
+    <h2 class="sec">Backup</h2>
+    <div class="list-group">
+      <button type="button" class="list-row" id="btnBackupAll"><span class="lr-ico"><svg class="ico"><use href="#i-download"/></svg></span><span><b>Back up all forms</b><small>Save PDFs and answers to one file</small></span><svg class="ico"><use href="#i-chev-r"/></svg></button>
+      <label class="list-row"><span class="lr-ico"><svg class="ico"><use href="#i-upload"/></svg></span><span><b>Restore a backup</b><small>Add forms from a backup file</small></span><svg class="ico"><use href="#i-chev-r"/></svg><input type="file" id="restorePick" class="file-hide" accept="application/json,.json" /></label>
+    </div>
+    <p class="sheet-foot">FieldNote · forms and settings are saved on this device.</p>
+  </section>
+
+  <!-- ============ field editor ============ -->
+  <div class="sheet-back" id="fieldBack"></div>
+  <section class="sheet" id="fieldSheet" aria-label="Edit field">
+    <div class="handle"></div>
+    <div class="sheet-top"><h2 class="grow sheet-title">Edit field</h2><button type="button" class="sheet-done" id="btnCloseField">Done</button></div>
+    <p class="count" id="fieldPdfName" style="margin:2px 2px 0"></p>
+    <label for="fe_label">Label</label>
+    <input id="fe_label" placeholder="What should this ask?" autocomplete="off" />
+    <label for="fe_kind">Type</label>
+    <select id="fe_kind" aria-label="Field type"></select>
+    <label for="fe_hint">Hint (optional)</label>
+    <input id="fe_hint" placeholder="Small help text under the field" autocomplete="off" />
+    <div class="list-group" style="margin-top:16px">
+      <div class="setting-row">
+        <div><b>Required</b><span class="count">Warn before export if this is empty.</span></div>
+        <button type="button" class="check-toggle" id="fe_req" role="switch" aria-checked="false" aria-label="Required">NO</button>
+      </div>
+      <div class="setting-row">
+        <div><b>Show in form</b><span class="count">Hidden fields are left as they are in the PDF.</span></div>
+        <button type="button" class="check-toggle on" id="fe_vis" role="switch" aria-checked="true" aria-label="Show in form">YES</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PDF review ============ -->
+  <div class="sheet-back" id="pdfBack"></div>
+  <section class="sheet pdf-sheet" id="pdfSheet" aria-label="Review PDF">
+    <div class="handle"></div>
+    <div class="sheet-top"><h2 class="grow sheet-title">Review PDF</h2><button type="button" class="sheet-done" id="btnPdfClose">Close</button></div>
+    <div class="pdf-check" id="pdfCheck"></div>
+    <div class="pdf-pages" id="pdfPages"></div>
+    <div class="pdf-actions" id="pdfActions">
+      <button type="button" class="btn" id="btnPdfDownload" disabled><svg class="ico sm"><use href="#i-download"/></svg>Save</button>
+      <button type="button" class="btn primary" id="btnPdfShare" disabled><svg class="ico sm"><use href="#i-share"/></svg>Share…</button>
+    </div>
+    <div class="pdf-share-note hidden" id="pdfShareNote">Sharing isn't available in this browser. It works on iPhone and Android – here, use Save.</div>
+  </section>
+
+  <!-- ============ signature pad ============ -->
+  <div class="sheet-back" id="sigBack"></div>
+  <section class="sheet" id="sigSheet" aria-label="Signature pad">
+    <div class="handle"></div>
+    <div class="sheet-top"><h2 class="grow sheet-title" id="sigTitle">Sign here</h2><button type="button" class="sheet-done" id="btnCloseSig">Close</button></div>
+    <button type="button" class="btn sm sig-wide-btn" id="btnSigWide" aria-pressed="false"><svg class="ico sm"><use href="#i-rotate"/></svg><span class="on-off">Full-screen pad</span><span class="on-on">Back to small pad</span></button>
+    <div class="sig-wrap">
+      <canvas id="sigPad" class="sig-pad" width="640" height="280"></canvas>
+      <div class="sig-guide" aria-hidden="true"><span class="sig-line"></span><span class="sig-label">Turn phone sideways · sign above the line</span></div>
+    </div>
+    <div class="grid-2" style="margin-top:10px">
+      <button type="button" class="btn" id="btnSigRedo">Clear pad</button>
+      <button type="button" class="btn good" id="btnSigSave"><svg class="ico sm"><use href="#i-check"/></svg>Save signature</button>
+    </div>
+  </section>
+
+  <input type="file" id="photoPick" class="file-hide" accept="image/*" />
+  <input type="file" id="photoCam" class="file-hide" accept="image/*" capture="environment" />
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
