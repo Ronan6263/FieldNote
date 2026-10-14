@@ -701,7 +701,8 @@ function renderDoc(keepScroll) {
     html += `<div class="fn-empty">
       <svg viewBox="0 0 140 110" fill="none" aria-hidden="true"><rect x="38" y="8" width="64" height="86" rx="9" fill="currentColor" fill-opacity=".10" stroke="currentColor" stroke-width="2.4"/><path d="M50 30h40M50 44h40M50 58h24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
       <h3>No fillable fields found</h3>
-      <p>This PDF is flat, so there is nothing to lay out yet. You can still attach photos below and export them as extra pages. Placing fields by hand is coming next.</p></div>`;
+      <p>This PDF is flat, so there is nothing to lay out yet. Tap where each answer belongs and FieldNote will build the form for you.</p>
+      <button type="button" class="btn primary" id="btnPlaceEmpty" style="margin-top:16px">${icon("plus")}Add fields by hand</button></div>`;
   }
   html += `<div class="edit-bar"><span>Editing layout · tap Edit on any field</span><button type="button" class="btn sm primary" id="btnEditDone">Done</button></div>`;
   cards.forEach((c, idx) => {
@@ -905,6 +906,7 @@ function wireEditor() {
     let el;
     if ((el = q("[data-edit]"))) return openFieldEdit(el.dataset.edit);
     if (q("#btnEditDone")) return setEditing(false);
+    if (q("#btnPlaceEmpty")) return openPlacer();
     if ((el = q("[data-check]"))) {
       const f = fieldById(el.dataset.check);
       const on = !doc.values[f.id];
@@ -979,14 +981,16 @@ function setEditing(on) {
   renderDoc(true);
 }
 let editingFid = null;
-function openFieldEdit(fid) {
+let editFromPlacer = false;
+function openFieldEdit(fid, fromPlacer) {
+  editFromPlacer = !!fromPlacer;
   const f = fieldById(fid);
   if (!f) return;
   editingFid = fid;
   $("fieldPdfName").textContent = `PDF field: ${f.name}`;
   $("fe_label").value = f.label;
   $("fe_hint").value = f.hint || "";
-  const allowed = f.origin === "text" ? TEXT_KINDS.concat(["photo", "signature"]) : f.origin === "button" || f.origin === "photo" || f.origin === "signature" ? ["photo", "signature"] : [f.kind];
+  const allowed = f.origin === "flat" ? TEXT_KINDS.concat(["check", "photo", "signature"]) : f.origin === "text" ? TEXT_KINDS.concat(["photo", "signature"]) : f.origin === "button" || f.origin === "photo" || f.origin === "signature" ? ["photo", "signature"] : [f.kind];
   $("fe_kind").innerHTML = allowed.map((k) => `<option value="${k}"${k === f.kind ? " selected" : ""}>${KIND_NAMES[k]}</option>`).join("");
   $("fe_kind").disabled = allowed.length < 2;
   setSwitch($("fe_req"), f.required);
@@ -1009,7 +1013,7 @@ function wireFieldSheet() {
   $("fe_kind").addEventListener("change", apply);
   $("fe_req").addEventListener("click", () => { setSwitch($("fe_req"), !$("fe_req").classList.contains("on")); apply(); });
   $("fe_vis").addEventListener("click", () => { setSwitch($("fe_vis"), !$("fe_vis").classList.contains("on")); apply(); });
-  const close = () => { apply(); closeSheet("fieldSheet"); renderDoc(true); };
+  const close = () => { apply(); closeSheet("fieldSheet"); if (editFromPlacer) { editFromPlacer = false; renderPlaceBoxes(); } else renderDoc(true); };
   $("btnCloseField").addEventListener("click", close);
   $("fieldBack").addEventListener("click", close);
 }
@@ -1140,12 +1144,17 @@ async function buildPdf(doc) {
   const fmt = S.prefs.dateFmt;
   const tryField = (f, fn) => { try { fn(); } catch (e) { console.warn("field failed", f.name, e); notes.push(`“${f.label}” couldn't be written`); } };
   const stamps = [];
+  const flats = [];
   for (const f of doc.fields) {
     if (f.hidden) continue;
     const v = doc.values[f.id];
     const has = Array.isArray(v) ? v.length > 0 : v !== undefined && v !== "" && v !== null;
     if (f.kind === "photo" || f.kind === "signature") {
       if (has) stamps.push({ f, v });
+      continue;
+    }
+    if (f.origin === "flat") {
+      if (has) flats.push({ f, v });
       continue;
     }
     if (!form) continue;
@@ -1174,6 +1183,39 @@ async function buildPdf(doc) {
     }
   }
   if (form) { try { form.updateFieldAppearances(helv); } catch (e) { console.warn(e); } }
+  for (const { f, v } of flats) {
+    try {
+      const r = f.rects[0];
+      const page = pages[r.page] || pages[0];
+      if (f.kind === "check") {
+        const k = Math.min(r.w, r.h);
+        const ox = r.x + (r.w - k) / 2, oy = r.y + (r.h - k) / 2;
+        const col = L.rgb(0.1, 0.1, 0.1), th = Math.max(1, k * 0.12);
+        page.drawLine({ start: { x: ox + k * 0.18, y: oy + k * 0.5 }, end: { x: ox + k * 0.42, y: oy + k * 0.22 }, thickness: th, color: col });
+        page.drawLine({ start: { x: ox + k * 0.42, y: oy + k * 0.22 }, end: { x: ox + k * 0.84, y: oy + k * 0.8 }, thickness: th, color: col });
+        continue;
+      }
+      let t = safeText(f.kind === "date" ? formatDate(v, f.dateFmt || fmt) : String(v), helv);
+      const pad = 2;
+      if (f.kind === "multiline") {
+        const size = 10, lead = size * 1.25;
+        const lines = [];
+        t.split("\n").forEach((para) => {
+          let cur = "";
+          para.split(/\s+/).forEach((w) => {
+            const test = cur ? cur + " " + w : w;
+            if (helv.widthOfTextAtSize(test, size) <= r.w - pad * 2 || !cur) cur = test; else { lines.push(cur); cur = w; }
+          });
+          lines.push(cur);
+        });
+        lines.slice(0, Math.max(1, Math.floor((r.h - pad * 2) / lead))).forEach((ln, i) => page.drawText(ln, { x: r.x + pad, y: r.y + r.h - pad - size - i * lead + size * 0.15, size, font: helv, color: L.rgb(0.08, 0.08, 0.08) }));
+      } else {
+        let size = Math.min(11, Math.max(6, r.h * 0.66));
+        while (size > 5 && helv.widthOfTextAtSize(t, size) > r.w - pad * 2) size -= 0.5;
+        page.drawText(t, { x: r.x + pad, y: r.y + (r.h - size) / 2 + size * 0.18, size, font: helv, color: L.rgb(0.08, 0.08, 0.08) });
+      }
+    } catch (e) { notes.push(`“${f.label}” couldn't be written`); }
+  }
   const embedded = new Map();
   const embed = async (data) => {
     if (embedded.has(data)) return embedded.get(data);
@@ -1303,6 +1345,176 @@ function wireReview() {
     setTimeout(() => jumpToField(b.dataset.jumpField), 380);
   });
   $("btnExport").addEventListener("click", openReview);
+}
+
+
+// ------------------------------------------------------------- manual field placer
+const PLACE_SIZES = { text: [150, 18], multiline: [230, 64], date: [90, 18], check: [14, 14], photo: [170, 120], signature: [170, 52] };
+const PS = { kind: "text", sel: null, pdf: null, phrases: {}, drag: null, tap: null };
+function resortFields(doc) {
+  doc.fields.sort((a, b) => a.page - b.page || (Math.abs(b.rects[0].y - a.rects[0].y) > 6 ? b.rects[0].y - a.rects[0].y : a.rects[0].x - b.rects[0].x));
+  doc.fields.forEach((f, i) => (f.order = i));
+}
+function pfStyle(doc, f) {
+  const pg = doc.pages[f.rects[0].page], r = f.rects[0];
+  return `left:${(r.x / pg.w * 100).toFixed(3)}%;top:${((pg.h - r.y - r.h) / pg.h * 100).toFixed(3)}%;width:${(r.w / pg.w * 100).toFixed(3)}%;height:${(r.h / pg.h * 100).toFixed(3)}%`;
+}
+function renderPlaceBoxes() {
+  const doc = activeDoc();
+  document.querySelectorAll(".place-layer").forEach((layer) => {
+    const pi = +layer.dataset.page;
+    layer.innerHTML = doc.fields.filter((f) => f.rects[0].page === pi && !f.hidden).map((f) => {
+      const flat = f.origin === "flat";
+      const sel = flat && PS.sel === f.id;
+      return `<div class="pf${flat ? "" : " ghost"}${sel ? " sel" : ""}" data-pf="${f.id}" style="${pfStyle(doc, f)}">${flat ? `<span class="pf-tag">${escapeHtml(f.label)}</span>` : ""}${sel ? `<div class="pf-bar"><button type="button" data-pf-edit="${f.id}">Edit</button><button type="button" class="del" data-pf-del="${f.id}">Delete</button></div><i class="pf-h" data-pf-h="${f.id}"></i>` : ""}</div>`;
+    }).join("");
+  });
+}
+async function openPlacer() {
+  const doc = activeDoc();
+  if (!doc) return;
+  closeSheet("menuSheet");
+  PS.sel = null; PS.phrases = {};
+  $("placeScreen").classList.remove("hidden");
+  document.documentElement.classList.add("placing");
+  const box = $("placePages");
+  box.innerHTML = `<div class="pdf-msg">Loading pages…</div>`;
+  try {
+    const lib = await withTimeout(loadPdfJs(), 16000, "PDF viewer");
+    PS.pdf = await lib.getDocument(Object.assign({ data: doc.pdf.slice() }, pdfjsOpts())).promise;
+    box.innerHTML = "";
+    const width = Math.min(820, Math.max(300, box.clientWidth - 20));
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    for (let i = 0; i < doc.pages.length; i++) {
+      const pg = await PS.pdf.getPage(i + 1);
+      const v0 = pg.getViewport({ scale: 1 });
+      const vp = pg.getViewport({ scale: (width / v0.width) * dpr });
+      const wrap = document.createElement("div");
+      wrap.className = "place-page";
+      const c = document.createElement("canvas");
+      c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+      wrap.appendChild(c);
+      const layer = document.createElement("div");
+      layer.className = "place-layer"; layer.dataset.page = i;
+      wrap.appendChild(layer);
+      box.appendChild(wrap);
+      await pg.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+      renderPlaceBoxes();
+    }
+    if (doc.pages.some((p) => p.rot)) toast("This PDF has rotated pages, so boxes may land off by a quarter turn");
+  } catch (e) {
+    console.warn(e);
+    box.innerHTML = `<div class="pdf-msg static">Couldn't show the pages here. The PDF viewer didn't load, so check your connection and try again.</div>`;
+  }
+}
+function closePlacer() {
+  const doc = activeDoc();
+  $("placeScreen").classList.add("hidden");
+  document.documentElement.classList.remove("placing");
+  try { if (PS.pdf) PS.pdf.destroy(); } catch (e) {}
+  PS.pdf = null; PS.sel = null; PS.drag = null;
+  if (doc) { resortFields(doc); touch(doc); renderDoc(false); window.scrollTo(0, 0); }
+}
+async function placePhrases(pageIdx) {
+  if (PS.phrases[pageIdx]) return PS.phrases[pageIdx];
+  if (!PS.pdf) return [];
+  const pg = await PS.pdf.getPage(pageIdx + 1);
+  const tc = await pg.getTextContent();
+  return (PS.phrases[pageIdx] = buildPhrases(tc.items));
+}
+function addPlaced(pageIdx, fx, fy) {
+  const doc = activeDoc();
+  const pg = doc.pages[pageIdx];
+  const [w, h] = PLACE_SIZES[PS.kind];
+  const cx = fx * pg.w, cy = pg.h - fy * pg.h;
+  const x = Math.max(2, Math.min(pg.w - w - 2, cx - w / 2));
+  const y = Math.max(2, Math.min(pg.h - h - 2, cy - h / 2));
+  const n = doc.fields.filter((f) => f.origin === "flat").length + 1;
+  const f = {
+    id: "p" + uid(), name: "fn_" + uid(), kind: PS.kind, origin: "flat", label: `${KIND_NAMES[PS.kind]} ${n}`, hint: "", group: "", _auto: true,
+    page: pageIdx, rects: [{ x, y, w, h, page: pageIdx, opt: "" }], options: [], optLabels: {}, required: false, hidden: false, maxLength: 0, multiline: PS.kind === "multiline", defaultValue: null, order: 9999
+  };
+  doc.fields.push(f);
+  PS.sel = f.id;
+  touch(doc);
+  renderPlaceBoxes();
+  placePhrases(pageIdx).then((ph) => {
+    if (!f._auto) return;
+    const t = findLabel(f.rects[0], ph, PS.kind === "check" ? "right" : "left");
+    if (t) { f.label = titleCaseIfShouting(t); touch(doc); renderPlaceBoxes(); }
+  }).catch(() => {});
+}
+function wirePlacer() {
+  $("placeDone").addEventListener("click", closePlacer);
+  $("btnPlace").addEventListener("click", openPlacer);
+  $("placeKinds").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-pk]");
+    if (!b) return;
+    PS.kind = b.dataset.pk;
+    document.querySelectorAll("#placeKinds [data-pk]").forEach((x) => x.classList.toggle("on", x === b));
+    $("placeHint").textContent = `Tap the page to add a ${KIND_NAMES[PS.kind].toLowerCase()} field`;
+  });
+  const box = $("placePages");
+  box.addEventListener("pointerdown", (e) => {
+    const doc = activeDoc();
+    const layer = e.target.closest(".place-layer");
+    if (!layer) return;
+    const bar = e.target.closest(".pf-bar");
+    if (bar) return;
+    const h = e.target.closest("[data-pf-h]");
+    const pfEl = e.target.closest("[data-pf]");
+    const f = pfEl ? doc.fields.find((x) => x.id === pfEl.dataset.pf) : null;
+    if (f && f.origin === "flat") {
+      e.preventDefault();
+      if (PS.sel !== f.id) { PS.sel = f.id; renderPlaceBoxes(); }
+      const lr = layer.getBoundingClientRect();
+      const pg = doc.pages[f.rects[0].page];
+      PS.drag = { id: f.id, mode: h ? "resize" : "move", sx: e.clientX, sy: e.clientY, r0: Object.assign({}, f.rects[0]), kx: pg.w / lr.width, ky: pg.h / lr.height, pw: pg.w, ph: pg.h };
+      try { layer.setPointerCapture(e.pointerId); } catch (err) {}
+      return;
+    }
+    PS.tap = { x: e.clientX, y: e.clientY, t: Date.now(), layer, id: e.pointerId };
+  });
+  box.addEventListener("pointermove", (e) => {
+    const d = PS.drag;
+    if (!d) return;
+    const f = activeDoc().fields.find((x) => x.id === d.id);
+    if (!f) return;
+    const dx = (e.clientX - d.sx) * d.kx, dy = (e.clientY - d.sy) * d.ky;
+    const r = f.rects[0];
+    if (d.mode === "move") {
+      r.x = Math.max(0, Math.min(d.pw - r.w, d.r0.x + dx));
+      r.y = Math.max(0, Math.min(d.ph - r.h, d.r0.y - dy));
+    } else {
+      r.w = Math.max(8, Math.min(d.pw - r.x, d.r0.w + dx));
+      const nh = Math.max(8, Math.min(d.ph - d.r0.y + d.r0.h, d.r0.h + dy));
+      r.y = d.r0.y + d.r0.h - nh; r.h = nh;
+    }
+    const el = box.querySelector(`[data-pf="${d.id}"]`);
+    if (el) el.setAttribute("style", pfStyle(activeDoc(), f));
+  });
+  const end = (e) => {
+    const doc = activeDoc();
+    if (PS.drag) { PS.drag = null; touch(doc); return; }
+    const t = PS.tap;
+    PS.tap = null;
+    if (!t || e.type === "pointercancel") return;
+    if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > 8 || Date.now() - t.t > 600) return;
+    if (PS.sel) { PS.sel = null; renderPlaceBoxes(); return; }
+    const lr = t.layer.getBoundingClientRect();
+    addPlaced(+t.layer.dataset.page, (e.clientX - lr.left) / lr.width, (e.clientY - lr.top) / lr.height);
+  };
+  box.addEventListener("pointerup", end);
+  box.addEventListener("pointercancel", end);
+  box.addEventListener("click", (e) => {
+    const ed = e.target.closest("[data-pf-edit]"), del = e.target.closest("[data-pf-del]");
+    const doc = activeDoc();
+    if (ed) { const f = doc.fields.find((x) => x.id === ed.dataset.pfEdit); if (f) { f._auto = false; openFieldEdit(f.id, true); } }
+    if (del) {
+      const i = doc.fields.findIndex((x) => x.id === del.dataset.pfDel);
+      if (i >= 0) { const [gone] = doc.fields.splice(i, 1); delete doc.values[gone.id]; PS.sel = null; touch(doc); renderPlaceBoxes(); toast("Field removed", "Undo", () => { doc.fields.push(gone); touch(doc); renderPlaceBoxes(); }); }
+    }
+  });
 }
 
 // ------------------------------------------------------------- navigation
@@ -1515,7 +1727,7 @@ async function init() {
   renderThemeGrid();
   applyTheme(S.prefs.theme, false);
   applyMotion();
-  wireList(); wireEditor(); wireFieldSheet(); wireSig(); wireReview(); wireMenus(); wireIntake();
+  wireList(); wireEditor(); wireFieldSheet(); wireSig(); wireReview(); wireMenus(); wireIntake(); wirePlacer();
   $("btnBack").addEventListener("click", () => { if (history.state && history.state.v === "doc") history.back(); else showList(); });
   window.addEventListener("popstate", () => { if (!S.listMode) { if ($("pdfSheet").classList.contains("show")) closeSheet("pdfSheet"); showList(); } });
   document.addEventListener("click", (e) => { const s = e.target.closest("[data-sec]"); if (s) goSection(s.dataset.sec); });

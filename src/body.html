@@ -60,6 +60,7 @@
         <div><b>Flatten on export</b><span class="count">Bake answers into the PDF so they can't be edited afterwards.</span></div>
         <button type="button" class="check-toggle" id="flattenToggle" role="switch" aria-checked="false" aria-label="Flatten on export">NO</button>
       </div>
+      <button type="button" class="list-row" id="btnPlace"><span class="lr-ico"><svg class="ico"><use href="#i-plus"/></svg></span><span><b>Add fields by hand</b><small>Tap the PDF to place text, check, photo or signature boxes</small></span><svg class="ico"><use href="#i-chev-r"/></svg></button>
       <button type="button" class="list-row" id="btnSaveTemplate"><span class="lr-ico"><svg class="ico"><use href="#i-bookmark"/></svg></span><span><b>Save as template</b><small>Keep this layout to fill again later</small></span><svg class="ico"><use href="#i-chev-r"/></svg></button>
       <button type="button" class="list-row" id="btnDupe"><span class="lr-ico"><svg class="ico"><use href="#i-copy"/></svg></span><span><b>Duplicate</b><small>Copy this form with its answers</small></span><svg class="ico"><use href="#i-chev-r"/></svg></button>
       <button type="button" class="list-row" id="btnClear"><span class="lr-ico"><svg class="ico"><use href="#i-repeat"/></svg></span><span><b>Clear answers</b><small>Start over on the same layout</small></span><svg class="ico"><use href="#i-chev-r"/></svg></button>
@@ -151,6 +152,25 @@
       <button type="button" class="btn good" id="btnSigSave"><svg class="ico sm"><use href="#i-check"/></svg>Save signature</button>
     </div>
   </section>
+
+  <!-- ============ field placer ============ -->
+  <div class="place hidden" id="placeScreen" role="dialog" aria-label="Place fields">
+    <div class="place-top">
+      <div class="place-row">
+        <div class="grow"><b>Place fields</b><span class="count" id="placeHint">Tap the page to add a field</span></div>
+        <button type="button" class="btn sm primary" id="placeDone"><svg class="ico sm"><use href="#i-check"/></svg>Done</button>
+      </div>
+      <div class="place-kinds" id="placeKinds">
+        <button type="button" class="sn-btn on" data-pk="text">Text</button>
+        <button type="button" class="sn-btn" data-pk="multiline">Long text</button>
+        <button type="button" class="sn-btn" data-pk="date">Date</button>
+        <button type="button" class="sn-btn" data-pk="check">Check</button>
+        <button type="button" class="sn-btn" data-pk="photo">Photo</button>
+        <button type="button" class="sn-btn" data-pk="signature">Signature</button>
+      </div>
+    </div>
+    <div class="place-pages" id="placePages"></div>
+  </div>
 
   <input type="file" id="photoPick" class="file-hide" accept="image/*" />
   <input type="file" id="photoCam" class="file-hide" accept="image/*" capture="environment" />

@@ -110,3 +110,27 @@ body.editing .edit-bar { display: flex; }
 .busy.show { display: grid; }
 .busy > div { background: var(--sheet); border: 1px solid var(--line-2); border-radius: 20px; padding: 22px 28px; text-align: center; color: var(--muted); font-weight: 600; box-shadow: var(--shadow-lg); }
 .busy > div::before { content: ""; display: block; width: 26px; height: 26px; margin: 0 auto 12px; border-radius: 50%; border: 3px solid var(--line-2); border-top-color: var(--accent); animation: spin 900ms linear infinite; }
+
+/* field placer */
+.place { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; background: var(--bg); }
+.place.hidden { display: none; }
+html.placing, html.placing body { overflow: hidden; }
+.place-top { padding: calc(10px + env(safe-area-inset-top)) 12px 8px; background: var(--header); backdrop-filter: saturate(1.6) blur(20px); -webkit-backdrop-filter: saturate(1.6) blur(20px); border-bottom: 1px solid var(--line); }
+.place-row { display: flex; align-items: center; gap: 10px; max-width: 760px; margin: 0 auto 8px; }
+.place-row b { display: block; font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+.place-kinds { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; max-width: 760px; margin: 0 auto; padding-bottom: 2px; }
+.place-kinds::-webkit-scrollbar { display: none; }
+.place-pages { flex: 1 1 auto; overflow: auto; -webkit-overflow-scrolling: touch; padding: 12px 10px calc(30px + env(safe-area-inset-bottom)); }
+.place-page { position: relative; max-width: 820px; margin: 0 auto 14px; background: #fff; border-radius: 6px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22); }
+.place-page canvas { display: block; width: 100%; height: auto; border-radius: 6px; }
+.place-layer { position: absolute; inset: 0; cursor: crosshair; }
+.pf { position: absolute; box-sizing: border-box; border: 2px solid var(--accent-2); background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 3px; touch-action: none; cursor: move; }
+.pf.ghost { border-style: dashed; border-color: color-mix(in srgb, var(--faint) 80%, transparent); background: transparent; pointer-events: none; }
+.pf.sel { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); background: color-mix(in srgb, var(--accent) 24%, transparent); z-index: 3; }
+.pf-tag { position: absolute; left: -2px; bottom: 100%; margin-bottom: 2px; max-width: 220px; padding: 1px 6px; border-radius: 5px; background: var(--accent); color: var(--on-accent); font: 700 10px/1.5 var(--font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.pf-h { display: none; position: absolute; right: -13px; bottom: -13px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); touch-action: none; cursor: nwse-resize; }
+.pf.sel .pf-h { display: block; }
+.pf-bar { display: none; position: absolute; left: 0; top: 100%; margin-top: 12px; gap: 6px; z-index: 4; }
+.pf.sel .pf-bar { display: flex; }
+.pf-bar button { height: 34px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--sheet); color: var(--text); font-weight: 700; font-size: 13px; box-shadow: var(--shadow-lg); border: 1px solid var(--line-2); cursor: pointer; }
+.pf-bar button.del { color: var(--danger); }
