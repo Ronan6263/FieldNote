@@ -1432,6 +1432,7 @@ function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(S.pre
 
 function openDb() {
   return new Promise((res) => {
+    setTimeout(() => res(null), 2500); // some sandboxed previews never answer
     try {
       const r = indexedDB.open("fieldnote", 1);
       r.onupgradeneeded = () => r.result.createObjectStore("docs", { keyPath: "id" });
@@ -1444,14 +1445,15 @@ function openDb() {
 function dbReq(mode, fn) {
   return new Promise((res, rej) => {
     if (!idb) { res(fn(null)); return; }
+    const guard = setTimeout(() => rej(new Error("storage timeout")), 10000);
     try {
       const tx = idb.transaction("docs", mode);
       const st = tx.objectStore("docs");
       const rq = fn(st);
-      tx.oncomplete = () => res(rq && rq.result);
-      tx.onerror = () => rej(tx.error);
-      tx.onabort = () => rej(tx.error);
-    } catch (e) { rej(e); }
+      tx.oncomplete = () => { clearTimeout(guard); res(rq && rq.result); };
+      tx.onerror = () => { clearTimeout(guard); rej(tx.error); };
+      tx.onabort = () => { clearTimeout(guard); rej(tx.error); };
+    } catch (e) { clearTimeout(guard); rej(e); }
   });
 }
 const dbAll = () => idb ? dbReq("readonly", (st) => st.getAll()) : Promise.resolve([...memStore.values()]);
@@ -1531,7 +1533,8 @@ function busy(msg) {
     b.innerHTML = "<div></div>";
     document.body.appendChild(b);
   }
-  if (msg) { b.firstChild.textContent = msg; b.classList.add("show"); } else b.classList.remove("show");
+  clearTimeout(busy._t);
+  if (msg) { b.firstChild.textContent = msg; b.classList.add("show"); busy._t = setTimeout(() => b.classList.remove("show"), 40000); } else b.classList.remove("show");
 }
 
 // ------------------------------------------------------------- themes (same system as h202)
@@ -1754,21 +1757,41 @@ async function analyzePdf(bytes) {
 
 // --- pdf.js: used for reading nearby text (labels, headings) and for previews
 let pdfjsPromise = null;
+const PDFJS_SOURCES = [
+  { lib: "vendor/pdf.min.js", worker: "vendor/pdf.worker.min.js", fonts: "vendor/standard_fonts/" },
+  { lib: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js", worker: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js", fonts: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/" }
+];
+let pdfjsFonts = PDFJS_SOURCES[0].fonts;
+function loadScript(src, ms) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    const t = setTimeout(() => { s.remove(); reject(new Error("timeout " + src)); }, ms);
+    s.src = src;
+    s.onload = () => { clearTimeout(t); resolve(); };
+    s.onerror = () => { clearTimeout(t); s.remove(); reject(new Error("failed " + src)); };
+    document.head.appendChild(s);
+  });
+}
 function loadPdfJs() {
   if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
   if (pdfjsPromise) return pdfjsPromise;
-  pdfjsPromise = new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = "vendor/pdf.min.js";
-    s.onload = () => {
-      try { pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js"; resolve(window.pdfjsLib); } catch (e) { reject(e); }
-    };
-    s.onerror = () => { pdfjsPromise = null; reject(new Error("pdf.js failed to load")); };
-    document.head.appendChild(s);
-  });
+  pdfjsPromise = (async () => {
+    let lastErr;
+    for (const src of PDFJS_SOURCES) {
+      try {
+        await loadScript(src.lib, 7000);
+        pdfjsLib.GlobalWorkerOptions.workerSrc = src.worker;
+        pdfjsFonts = src.fonts;
+        return window.pdfjsLib;
+      } catch (e) { lastErr = e; }
+    }
+    pdfjsPromise = null;
+    throw lastErr || new Error("pdf.js unavailable");
+  })();
   return pdfjsPromise;
 }
-const PDFJS_OPTS = { standardFontDataUrl: "vendor/standard_fonts/", isEvalSupported: false };
+const pdfjsOpts = () => ({ standardFontDataUrl: pdfjsFonts, isEvalSupported: false });
+const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(what + " timed out")), ms))]);
 
 function buildPhrases(items) {
   const raw = items
@@ -1821,7 +1844,7 @@ function findLabel(r, phrases, side) {
 }
 async function labelFields(bytes, info) {
   const lib = await loadPdfJs();
-  const task = lib.getDocument(Object.assign({ data: bytes.slice() }, PDFJS_OPTS));
+  const task = lib.getDocument(Object.assign({ data: bytes.slice() }, pdfjsOpts()));
   const pdf = await task.promise;
   try {
     const perPage = [];
@@ -1905,7 +1928,7 @@ function prettyName(fileName) {
 async function createDocFromPdf(file) {
   const buf = new Uint8Array(await file.arrayBuffer());
   const info = await analyzePdf(buf);
-  try { if (info.fields.length) await labelFields(buf, info); } catch (e) { console.warn("label pass failed", e); }
+  try { if (info.fields.length) await withTimeout(labelFields(buf, info), 20000, "Label pass"); } catch (e) { console.warn("label pass failed", e); }
   finalizeFields(info);
   const doc = {
     id: uid(), name: prettyName(file.name), createdAt: Date.now(), updatedAt: Date.now(), isTemplate: false,
@@ -2607,7 +2630,7 @@ function fileNameFor(doc) {
 }
 async function renderPreview(bytes, box) {
   const lib = await loadPdfJs();
-  const task = lib.getDocument(Object.assign({ data: bytes.slice() }, PDFJS_OPTS));
+  const task = lib.getDocument(Object.assign({ data: bytes.slice() }, pdfjsOpts()));
   const pdf = await task.promise;
   box.innerHTML = "";
   const width = Math.max(300, box.clientWidth - 20);
@@ -2648,7 +2671,7 @@ async function openReview() {
     if (notes.length) chk.insertAdjacentHTML("beforeend", `<div class="check-title" style="border-top:1px solid var(--line)">${icon("alert")}${escapeHtml(notes.slice(0, 4).join(" · "))}${notes.length > 4 ? ` · +${notes.length - 4} more` : ""}</div>`);
     $("btnPdfDownload").disabled = false;
     $("btnPdfShare").disabled = false;
-    try { await renderPreview(bytes, $("pdfPages")); }
+    try { await withTimeout(renderPreview(bytes, $("pdfPages")), 45000, "Preview"); }
     catch (e) { console.warn(e); $("pdfPages").innerHTML = `<div class="pdf-msg static">Preview isn't available here, but your PDF is ready. Use Save or Share.</div>`; }
   } catch (e) {
     console.error(e);
@@ -2894,12 +2917,6 @@ async function init() {
   loadPrefs();
   renderThemeGrid();
   applyTheme(S.prefs.theme, false);
-  idb = await openDb();
-  try {
-    const rows = await dbAll();
-    S.docs = (rows || []).sort((a, b) => b.updatedAt - a.updatedAt);
-  } catch (e) { S.docs = []; }
-  if (!idb) toast("Saving isn't available in this browser mode");
   applyMotion();
   wireList(); wireEditor(); wireFieldSheet(); wireSig(); wireReview(); wireMenus(); wireIntake();
   $("btnBack").addEventListener("click", () => { if (history.state && history.state.v === "doc") history.back(); else showList(); });
@@ -2908,9 +2925,16 @@ async function init() {
   let raf = 0;
   window.addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; onScroll(); }); }, { passive: true });
   window.addEventListener("resize", syncHeaderH);
+  window.__fieldnote = { S, analyzePdf, buildPdf, openDoc, importPdfFile };
   showList();
+  idb = await openDb();
+  try {
+    const rows = await dbAll();
+    S.docs = (rows || []).concat(S.docs.filter((d) => !(rows || []).some((r) => r.id === d.id))).sort((a, b) => b.updatedAt - a.updatedAt);
+  } catch (e) { console.warn(e); }
+  if (S.listMode) renderList();
+  if (!idb) toast("Saving isn't available here, so forms won't be kept after you close this");
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});
-  window.__fieldnote = { S, analyzePdf, buildPdf, labelFields, finalizeFields, openDoc, importPdfFile };
 }
 init();
 
